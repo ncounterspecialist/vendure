@@ -110,16 +110,18 @@ export class OrderStateMachine {
         }
         if (fromState === 'AddingItems' && toState !== 'Cancelled') {
             const variantIds = unique(data.order.lines.map(l => l.productVariant.id));
-            const qb = this.connection
-                .getRepository(data.ctx, ProductVariant)
-                .createQueryBuilder('variant')
-                .leftJoin('variant.product', 'product')
-                .where('variant.deletedAt IS NULL')
-                .andWhere('product.deletedAt IS NULL')
-                .andWhere('variant.id IN (:...variantIds)', { variantIds });
-            const availableVariants = await qb.getMany();
-            if (availableVariants.length !== variantIds.length) {
-                return `message.cannot-transition-order-contains-products-which-are-unavailable`;
+            if(variantIds.length !== 0) {
+                const qb = this.connection
+                    .getRepository(data.ctx, ProductVariant)
+                    .createQueryBuilder('variant')
+                    .leftJoin('variant.product', 'product')
+                    .where('variant.deletedAt IS NULL')
+                    .andWhere('product.deletedAt IS NULL')
+                    .andWhere('variant.id IN (:...variantIds)', { variantIds });
+                const availableVariants = await qb.getMany();
+                if (availableVariants.length !== variantIds.length) {
+                    return `message.cannot-transition-order-contains-products-which-are-unavailable`;
+                }
             }
         }
         if (toState === 'ArrangingPayment') {
